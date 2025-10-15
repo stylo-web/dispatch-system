@@ -7,9 +7,9 @@ export const deleteFileSafe = (filePath) => {
     const fullPath = path.join(process.cwd(), "public", filePath.replace(/^\/+/, ""));
     if (fs.existsSync(fullPath)) {
         fs.unlinkSync(fullPath);
-        console.log(`🗑️ Deleted file: ${fullPath}`);
+        console.log(`Deleted file: ${fullPath}`);
     } else {
-        console.warn(`⚠️ File not found: ${fullPath}`);
+        console.warn(`File not found: ${fullPath}`);
     }
 };
 

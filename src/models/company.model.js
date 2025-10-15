@@ -14,9 +14,10 @@ const companySchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "User"
     }],
-
     user_permission: { type: Number },
-    join_date: { type: Date, default: Date.now }
+    service_start_date: { type: Date, default: Date.now },
+    service_end_date: { type: Date, required: true }, // e.g., valid till 2025-12-31
+    is_active: { type: Boolean, default: true }, // can be auto-set to false after expiry
 
 }, { timestamps: true });
 

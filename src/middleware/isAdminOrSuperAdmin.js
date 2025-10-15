@@ -1,5 +1,5 @@
 
-export const isAdmin = (req, res, next) => {
+export const isAdminOrSuperAdmin = (req, res, next) => {
     if (!req.user) {
         return res.status(401).json({ success: false, message: "Unauthorized: No user found" });
     }

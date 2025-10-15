@@ -2,7 +2,7 @@ import express from 'express';
 import connectDB from './src/config/db.js';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import userRoute from './src/routes/user.routes.js';
+import userRoute from './src/routes/index.js';
 import helmet from 'helmet';
 import cookieParser from "cookie-parser";
 import path from 'path';
@@ -13,7 +13,9 @@ const app = express();
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 app.use(cors({
-    credentials: true
+    origin: process.env.FRONTEND_URL,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']
 }));
 app.use(express.json());
 app.use(cookieParser());

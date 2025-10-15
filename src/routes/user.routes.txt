@@ -2,13 +2,14 @@ import express from "express";
 import { createSuperAdmin, getAllSuperAdmins, getSingleSuperAdmin, updateSuperAdmin } from "../controller/superadmin.controller.js";
 import { loginWithOtp, logout, verifyOtp } from "../controller/auth.controller.js";
 import { protect } from "../middleware/authMiddleware.js";
-import { createCompany, deleteCompany, getCompanyById, updateCompany } from "../controller/company.controller.js";
+import { createCompany, deleteCompany, getCompanyById, renewCompanyService, updateCompany } from "../controller/company.controller.js";
 import { isSuperAdmin } from "../middleware/isSuperAdmin.js";
-import { isAdmin } from "../middleware/isAdmin.js";
+import { isAdmin } from "../middleware/isAdminOrSuperAdmin.js";
 import { createAdminUnderCompany, deleteAdmin, getAllAdminsByCompany, getSingleAdmin, updateAdmin } from "../controller/admin.controller.js";
 import { createFormRequirement, getFormRequirement, updateFormRequirement } from "../controller/formRequirement.controller.js";
 import upload from "../utils/upload.js";
 import { createDispatch, deleteDispatch, getDispatchById, getDispatches, updateDispatch } from "../controller/dispatch.controller.js";
+import { checkCompanyStatus } from "../middleware/checkCompanyStatus.js";
 
 
 const router = express.Router();
@@ -26,11 +27,13 @@ router.post("/login-otp", loginWithOtp); // Public route to request OTP
 router.post("/verify-otp", verifyOtp); // Public route to verify OTP and login
 router.post("/logout", protect, logout); // Protected route to logout user
 
+router.post("/company/:id/renew", protect, isSuperAdmin, renewCompanyService); // Renew company service subscription
+
 // company routes
 router.post("/company-create", protect, isSuperAdmin, upload.single("profile_image"), createCompany); // Only super admins can create companies
 router.get("/company/:id", protect, isAdmin, getCompanyById); // Admins and super admins can get company details
 router.put("/company/:id", protect, isAdmin, upload.single("profile_image"), updateCompany); // Super admins & Admins can update companies
-router.delete("/company/:id", protect, isSuperAdmin, deleteCompany); // Super admins & Admins can delete companies
+router.delete("/company/:id", protect, isAdmin, deleteCompany); // Super admins & Admins can delete companies
 
 
 // admin routes
@@ -66,11 +69,11 @@ const uploadFields = upload.fields([
     { name: "fumigation_photos" }
 ]);
 
-router.post("/dispatch", protect, isAdmin, uploadFields, createDispatch); // Upload dispatch documents and create dispatch
-router.get("/dispatch/:id", protect, isAdmin, getDispatchById); // Upload dispatch documents and create dispatch
-router.get("/dispatch-all", protect, isAdmin, getDispatches); // Get all dispatches
-router.put("/dispatch/:id", protect, isAdmin, uploadFields, updateDispatch); // Update a dispatch
-router.delete("/dispatch/:id", protect, isAdmin, deleteDispatch); // Delete a dispatch
+router.post("/dispatch", protect, isAdmin, checkCompanyStatus, uploadFields, createDispatch); // Upload dispatch documents and create dispatch
+router.get("/dispatch/:id", protect, isAdmin, checkCompanyStatus, getDispatchById); // Upload dispatch documents and create dispatch
+router.get("/dispatch-all", protect, isAdmin, checkCompanyStatus, getDispatches); // Get all dispatches
+router.put("/dispatch/:id", protect, isAdmin, checkCompanyStatus, uploadFields, updateDispatch); // Update a dispatch
+router.delete("/dispatch/:id", protect, isAdmin, checkCompanyStatus, deleteDispatch); // Delete a dispatch
 
 
 

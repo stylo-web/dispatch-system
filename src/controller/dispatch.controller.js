@@ -120,7 +120,7 @@ export const getDispatches = async (req, res) => {
         const filter = company_id ? { company_id } : {};
         const dispatches = await Dispatch.find(filter)
             .populate("created_by", "name email phone role designation profile_image permission_level")
-            .sort({ createdAt: -1 });
+            
 
         res.status(200).json({
             success: true,
@@ -180,7 +180,6 @@ export const deleteDispatch = async (req, res) => {
         }
 
 
-        console.log("Deleting related files...");
         deleteFilesRecursive(dispatch.toObject());
 
 

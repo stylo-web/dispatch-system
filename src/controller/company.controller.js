@@ -8,6 +8,7 @@ export const createCompany = async (req, res) => {
 
         const { company_name, name, email, phone, designation, gst_number, address, narration, user_permission } = req.body;
 
+
         const profile_image = req.file ? `/public/uploads/${req.file.filename}` : null;
         if (!company_name || !name || !email || !phone) {
             return res.status(400).json({
@@ -38,6 +39,10 @@ export const createCompany = async (req, res) => {
             narration,
             user_permission
         });
+
+        // Set service period (e.g., 1 year from now)
+        const servicePeriodDays = req.body.service_period_days || 365;
+        company.service_end_date = new Date(Date.now() + servicePeriodDays * 24 * 60 * 60 * 1000);
 
         await company.save();
 
@@ -232,5 +237,28 @@ export const deleteCompany = async (req, res) => {
     } catch (error) {
         console.error("Error deleting company:", error.stack);
         return res.status(500).json({ success: false, message: "Failed to delete company", error: error.message });
+    }
+};
+
+
+
+// RENEW COMPANY SERVICE
+export const renewCompanyService = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { extend_days } = req.body;
+
+        const company = await Company.findById(id);
+        if (!company) return res.status(404).json({ message: "Company not found" });
+
+        company.service_end_date = new Date(
+            new Date(company.service_end_date).getTime() + extend_days * 24 * 60 * 60 * 1000
+        );
+        company.is_active = true;
+        await company.save();
+
+        res.json({ success: true, message: "Company service renewed successfully", company });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
     }
 };
