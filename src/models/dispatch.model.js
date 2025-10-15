@@ -39,6 +39,7 @@ const dispatchSchema = new mongoose.Schema({
     container_details: {
         pallet_photos: [{ type: String }],
         container_door_photo: { type: String },
+        door_photo: { type: String },
         seal_photo: { type: String },
         fumigation_photos: [{ type: String }]
     },

@@ -1,5 +1,6 @@
 import Dispatch from "../models/dispatch.model.js";
 import { createLog } from "../services/logs.service.js";
+import { deleteFilesRecursive } from "../utils/fileDeletion.js";
 import { convertPdfToJpg } from "../utils/pdfToJpg.js";
 
 
@@ -73,7 +74,7 @@ export const createDispatch = async (req, res) => {
             },
         };
 
-       
+
 
 
         for (const key in finalData.billing_details) {
@@ -117,7 +118,10 @@ export const getDispatches = async (req, res) => {
     try {
         const { company_id } = req.query;
         const filter = company_id ? { company_id } : {};
-        const dispatches = await Dispatch.find(filter).populate("created_by", "name email phone role designation profile_image permission_level").sort({ createdAt: -1 });
+        const dispatches = await Dispatch.find(filter)
+            .populate("created_by", "name email phone role designation profile_image permission_level")
+            .sort({ createdAt: -1 });
+
         res.status(200).json({
             success: true,
             data: dispatches
@@ -136,7 +140,9 @@ export const getDispatches = async (req, res) => {
 export const getDispatchById = async (req, res) => {
     try {
         const { id } = req.params;
-        const dispatch = await Dispatch.findById(id).populate("created_by", "name email phone role designation profile_image permission_level");
+        const dispatch = await Dispatch.findById(id)
+            .populate("created_by", "name email phone role designation profile_image permission_level")
+
         if (!dispatch) {
             return res.status(404).json({
                 success: false,
@@ -159,43 +165,60 @@ export const getDispatchById = async (req, res) => {
 };
 
 
+
+
 export const deleteDispatch = async (req, res) => {
     try {
         const { id } = req.params;
-        const dispatch = await Dispatch.findByIdAndDelete(id);
+        const dispatch = await Dispatch.findById(id);
+
         if (!dispatch) {
             return res.status(404).json({
                 success: false,
-                message: "Dispatch not found"
+                message: "Dispatch not found",
             });
         }
 
+
+        console.log("Deleting related files...");
+        deleteFilesRecursive(dispatch.toObject());
+
+
+        await Dispatch.findByIdAndDelete(id);
+
+
         await createLog({
-            user_id: req.user?._id || user._id,   // who performed
+            user_id: req.user?._id || null,
             company_id: req.user?.company_id || null,
             role: req.user?.role || "super_admin",
             action: "DELETE_DISPATCH",
             target_collection: "Dispatch",
-            target_id: dispatch._id,                  // newly created dispatch
-            metadata: { vehicle_number: dispatch.vehicle_number, date: dispatch.date, dispatch_type: dispatch.dispatch_type }
+            target_id: dispatch._id,
+            metadata: {
+                vehicle_number: dispatch.vehicle_number,
+                date: dispatch.date,
+                dispatch_type: dispatch.dispatch_type,
+            },
         });
+
 
         res.status(200).json({
             success: true,
-            message: "Dispatch deleted successfully"
+            message: "Dispatch and all related files deleted successfully",
         });
-    }
-    catch (error) {
+    } catch (error) {
         console.error("Error deleting dispatch:", error);
         res.status(500).json({
             success: false,
-            message: "Server error",
+            message: "Failed to delete dispatch",
             error: error.message,
         });
     }
 };
 
 
+
+// Update Dispatch
 export const updateDispatch = async (req, res) => {
     try {
         const { id } = req.params;
