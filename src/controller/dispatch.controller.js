@@ -1,7 +1,6 @@
 import Dispatch from "../models/dispatch.model.js";
 import { createLog } from "../services/logs.service.js";
-import { processFiles } from "../utils/fileProcessor.js";
-
+import { convertPdfToJpg } from "../utils/pdfToJpg.js";
 
 
 
@@ -21,9 +20,16 @@ export const createDispatch = async (req, res) => {
         }
 
 
-        // Helper functions for files
-        const singleFile = (field) => req.files?.[field]?.[0] ? `/uploads/dispatch/${req.files[field][0].filename}` : undefined;
-        const multipleFiles = (field) => req.files?.[field] ? req.files[field].map(f => `/uploads/dispatch/${f.filename}`) : [];
+        const singleFile = (field) =>
+            req.files?.[field]?.[0]
+                ? `/uploads/dispatch/${req.files[field][0].filename}`
+                : null;
+
+        const multipleFiles = (field) =>
+            req.files?.[field]
+                ? req.files[field].map((f) => `/uploads/dispatch/${f.filename}`)
+                : [];
+
 
         const finalData = {
             dispatch_type,
@@ -33,52 +39,61 @@ export const createDispatch = async (req, res) => {
             company_id,
             created_by: req.user._id,
 
-            empty_vehicle_photos: await multipleFiles("empty_vehicle_photos"),
-            dispatch_product_photos: await multipleFiles("dispatch_product_photos"),
+            empty_vehicle_photos: multipleFiles("empty_vehicle_photos"),
+            dispatch_product_photos: multipleFiles("dispatch_product_photos"),
 
             loading_person: {
                 name: req.body.loading_person_name,
                 phone: req.body.loading_person_phone,
-                loading_person_photo: await singleFile("loading_person_photo"),
+                loading_person_photo: singleFile("loading_person_photo"),
             },
 
             driver_details: {
                 name: req.body.driver_name,
                 phone: req.body.driver_phone,
-                driver_photo: await singleFile("driver_photo"),
-                loaded_vehicle_photos: await multipleFiles("driver_loaded_vehicle_photos"),
+                driver_photo: singleFile("driver_photo"),
+                loaded_vehicle_photos: multipleFiles("driver_loaded_vehicle_photos"),
             },
 
             billing_details: {
-                lr_copy: await singleFile("lr_copy"),
-                dispatch_copy: await singleFile("dispatch_copy"),
-                eway_bill_copy: await singleFile("eway_bill_copy"),
-                invoice: await singleFile("invoice"),
-                packing_details: await singleFile("packing_details"),
-                extra_1: await singleFile("extra_1"),
-                extra_2: await singleFile("extra_2"),
+                lr_copy: singleFile("lr_copy"),
+                dispatch_copy: singleFile("dispatch_copy"),
+                eway_bill_copy: singleFile("eway_bill_copy"),
+                invoice: singleFile("invoice"),
+                packing_details: singleFile("packing_details"),
+                extra_1: singleFile("extra_1"),
+                extra_2: singleFile("extra_2"),
             },
 
             container_details: {
-                pallet_photos: await multipleFiles("pallet_photos"),
-                door_photo: await singleFile("door_photo"),
-                seal_photo: await singleFile("seal_photo"),
-                fumigation_photos: await multipleFiles("fumigation_photos"),
+                pallet_photos: multipleFiles("pallet_photos"),
+                door_photo: singleFile("door_photo"),
+                seal_photo: singleFile("seal_photo"),
+                fumigation_photos: multipleFiles("fumigation_photos"),
             },
         };
+
+       
+
+
+        for (const key in finalData.billing_details) {
+            const filePath = finalData.billing_details[key];
+            if (filePath && filePath.endsWith(".pdf")) {
+                finalData.billing_details[key] = await convertPdfToJpg(filePath);
+            }
+        }
 
         const dispatch = await Dispatch.create(finalData);
 
         await createLog({
-            user_id: req.user?._id || user._id,   // who performed
+            user_id: req.user?._id || null,
             company_id: req.user?.company_id || null,
             role: req.user?.role || "super_admin",
             action: "CREATE_DISPATCH",
             target_collection: "Dispatch",
-            target_id: dispatch._id,                  // newly created dispatch
-            metadata: { vehicle_number, date: formattedDate, dispatch_type }
+            target_id: dispatch._id,
+            metadata: { vehicle_number, date: formattedDate, dispatch_type },
         });
-
 
         res.status(201).json({
             success: true,
@@ -94,6 +109,7 @@ export const createDispatch = async (req, res) => {
         });
     }
 };
+
 
 
 
@@ -153,6 +169,17 @@ export const deleteDispatch = async (req, res) => {
                 message: "Dispatch not found"
             });
         }
+
+        await createLog({
+            user_id: req.user?._id || user._id,   // who performed
+            company_id: req.user?.company_id || null,
+            role: req.user?.role || "super_admin",
+            action: "DELETE_DISPATCH",
+            target_collection: "Dispatch",
+            target_id: dispatch._id,                  // newly created dispatch
+            metadata: { vehicle_number: dispatch.vehicle_number, date: dispatch.date, dispatch_type: dispatch.dispatch_type }
+        });
+
         res.status(200).json({
             success: true,
             message: "Dispatch deleted successfully"
@@ -240,3 +267,4 @@ export const updateDispatch = async (req, res) => {
         console.error("Error updating dispatch:", error);
         res.status(500).json({ success: false, message: "Server error", error: error.message });
     }
+};
