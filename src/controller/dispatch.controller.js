@@ -199,72 +199,168 @@ export const deleteDispatch = async (req, res) => {
 export const updateDispatch = async (req, res) => {
     try {
         const { id } = req.params;
-        const updates = { ...req.body };
+        const { company_id, dispatch_type, vehicle_number, note } = req.body;
 
-        const singleFile = async (field) => {
-            if (req.files?.[field]?.[0]) {
-                const uploadedPath = `/uploads/dispatch/${req.files[field][0].filename}`;
-                return await processFile(`.${uploadedPath}`);
-            }
-            return undefined;
+
+        const validateNumberPlate = (num) => /^[A-Z]{2}-\d{2}-[A-Z]{1,2}-\d{1,4}$/i.test(num);
+        if (!validateNumberPlate(vehicle_number)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid vehicle number format. Expected: XX-00-XX-0000",
+            });
+        }
+
+
+        const existingDispatch = await Dispatch.findById(id);
+        if (!existingDispatch) {
+            return res.status(404).json({
+                success: false,
+                message: "Dispatch not found",
+            });
+        }
+
+        const singleFile = (field) =>
+            req.files?.[field]?.[0]
+                ? `/uploads/dispatch/${req.files[field][0].filename}`
+                : existingDispatch?.[field] || null;
+
+        const multipleFiles = (field, existingFiles = []) =>
+            req.files?.[field]
+                ? [
+                    ...existingFiles,
+                    ...req.files[field].map((f) => `/uploads/dispatch/${f.filename}`),
+                ]
+                : existingFiles;
+
+
+        const updatedData = {
+            dispatch_type: dispatch_type || existingDispatch.dispatch_type,
+            vehicle_number: vehicle_number || existingDispatch.vehicle_number,
+            note: note || existingDispatch.note,
+            company_id: company_id || existingDispatch.company_id,
+            updated_by: req.user._id,
+
+            empty_vehicle_photos: multipleFiles(
+                "empty_vehicle_photos",
+                existingDispatch.empty_vehicle_photos || []
+            ),
+            dispatch_product_photos: multipleFiles(
+                "dispatch_product_photos",
+                existingDispatch.dispatch_product_photos || []
+            ),
+
+            loading_person: {
+                name: req.body.loading_person_name || existingDispatch.loading_person?.name,
+                phone: req.body.loading_person_phone || existingDispatch.loading_person?.phone,
+                loading_person_photo:
+                    singleFile("loading_person_photo") ||
+                    existingDispatch.loading_person?.loading_person_photo ||
+                    null,
+            },
+
+            driver_details: {
+                name: req.body.driver_name || existingDispatch.driver_details?.name,
+                phone: req.body.driver_phone || existingDispatch.driver_details?.phone,
+                driver_photo:
+                    singleFile("driver_photo") ||
+                    existingDispatch.driver_details?.driver_photo ||
+                    null,
+                loaded_vehicle_photos: multipleFiles(
+                    "driver_loaded_vehicle_photos",
+                    existingDispatch.driver_details?.loaded_vehicle_photos || []
+                ),
+            },
+
+            billing_details: {
+                lr_copy:
+                    singleFile("lr_copy") ||
+                    existingDispatch.billing_details?.lr_copy ||
+                    null,
+                dispatch_copy:
+                    singleFile("dispatch_copy") ||
+                    existingDispatch.billing_details?.dispatch_copy ||
+                    null,
+                eway_bill_copy:
+                    singleFile("eway_bill_copy") ||
+                    existingDispatch.billing_details?.eway_bill_copy ||
+                    null,
+                invoice:
+                    singleFile("invoice") ||
+                    existingDispatch.billing_details?.invoice ||
+                    null,
+                packing_details:
+                    singleFile("packing_details") ||
+                    existingDispatch.billing_details?.packing_details ||
+                    null,
+                extra_1:
+                    singleFile("extra_1") ||
+                    existingDispatch.billing_details?.extra_1 ||
+                    null,
+                extra_2:
+                    singleFile("extra_2") ||
+                    existingDispatch.billing_details?.extra_2 ||
+                    null,
+            },
+
+            container_details: {
+                pallet_photos: multipleFiles(
+                    "pallet_photos",
+                    existingDispatch.container_details?.pallet_photos || []
+                ),
+                door_photo:
+                    singleFile("door_photo") ||
+                    existingDispatch.container_details?.door_photo ||
+                    null,
+                seal_photo:
+                    singleFile("seal_photo") ||
+                    existingDispatch.container_details?.seal_photo ||
+                    null,
+                fumigation_photos: multipleFiles(
+                    "fumigation_photos",
+                    existingDispatch.container_details?.fumigation_photos || []
+                ),
+            },
         };
 
-        const multipleFiles = async (field) => {
-            if (req.files?.[field]) {
-                const uploadedPaths = req.files[field].map(f => `./uploads/dispatch/${f.filename}`);
-                return await processFiles(uploadedPaths);
-            }
-            return [];
-        };
 
-        // 🔁 Process each field dynamically
-        const fileMap = {
-            "empty_vehicle_photos": "multiple",
-            "dispatch_product_photos": "multiple",
-            "loading_person_photo": "single",
-            "driver_photo": "single",
-            "driver_loaded_vehicle_photos": "multiple",
-            "lr_copy": "single",
-            "dispatch_copy": "single",
-            "eway_bill_copy": "single",
-            "invoice": "single",
-            "packing_details": "single",
-            "extra_1": "single",
-            "extra_2": "single",
-            "pallet_photos": "multiple",
-            "door_photo": "single",
-            "seal_photo": "single",
-            "fumigation_photos": "multiple"
-        };
-
-        for (const [key, type] of Object.entries(fileMap)) {
-            if (req.files?.[key]) {
-                const path = type === "single"
-                    ? await singleFile(key)
-                    : await multipleFiles(key);
-
-                if (key.startsWith("driver_") || key.startsWith("loading_person") || key.startsWith("billing_details") || key.startsWith("container_details")) {
-                    const [parent, child] = key.split(".");
-                    updates[parent] = updates[parent] || {};
-                    updates[parent][child] = path;
-                } else {
-                    updates[key] = path;
-                }
+        for (const key in updatedData.billing_details) {
+            const filePath = updatedData.billing_details[key];
+            if (filePath && filePath.endsWith(".pdf")) {
+                updatedData.billing_details[key] = await convertPdfToJpg(filePath);
             }
         }
 
-        const dispatch = await Dispatch.findByIdAndUpdate(id, updates, { new: true });
-        if (!dispatch) {
-            return res.status(404).json({ success: false, message: "Dispatch not found" });
-        }
+
+        const updatedDispatch = await Dispatch.findByIdAndUpdate(id, updatedData, {
+            new: true,
+        });
+
+
+        await createLog({
+            user_id: req.user?._id || null,
+            company_id: req.user?.company_id || null,
+            role: req.user?.role || "super_admin",
+            action: "UPDATE_DISPATCH",
+            target_collection: "Dispatch",
+            target_id: updatedDispatch._id,
+            metadata: {
+                vehicle_number: updatedDispatch.vehicle_number,
+                dispatch_type: updatedDispatch.dispatch_type,
+            },
+        });
+
 
         res.status(200).json({
             success: true,
             message: "Dispatch updated successfully",
-            data: dispatch
+            data: updatedDispatch,
         });
     } catch (error) {
         console.error("Error updating dispatch:", error);
-        res.status(500).json({ success: false, message: "Server error", error: error.message });
+        res.status(500).json({
+            success: false,
+            message: "Failed to update dispatch",
+            error: error.message,
+        });
     }
 };
