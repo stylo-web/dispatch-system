@@ -11,10 +11,10 @@ import { isAdminOrSuperAdmin } from "../middleware/isAdminOrSuperAdmin.js";
 
 const router = express.Router();
 
-router.post("/:companyId", protect, isAdminOrSuperAdmin, createAdminUnderCompany);
-router.put("/:adminId", protect, isAdminOrSuperAdmin, updateAdmin);
-router.delete("/:adminId", protect, isAdminOrSuperAdmin, deleteAdmin);
-router.get("/:adminId", protect, isAdminOrSuperAdmin, getSingleAdmin);
-router.get("/company/:companyId", protect, isAdminOrSuperAdmin, getAllAdminsByCompany);
+router.post("/:companyId", protect, isAdminOrSuperAdmin, createAdminUnderCompany); // Create admin under a company
+router.put("/:adminId", protect, isAdminOrSuperAdmin, updateAdmin); // Update admin details
+router.delete("/:adminId", protect, isAdminOrSuperAdmin, deleteAdmin); // Delete an admin
+router.get("/:adminId", protect, isAdminOrSuperAdmin, getSingleAdmin); // Get single admin details
+router.get("/company/:companyId", protect, isAdminOrSuperAdmin, getAllAdminsByCompany); // Get all admins under a company
 
 export default router;

@@ -4,8 +4,8 @@ import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.post("/login-otp", loginWithOtp);
-router.post("/verify-otp", verifyOtp);
-router.post("/logout", protect, logout);
+router.post("/login-otp", loginWithOtp); // Initiate login with OTP
+router.post("/verify-otp", verifyOtp); // Verify OTP and login
+router.post("/logout", protect, logout); // Logout user
 
 export default router;

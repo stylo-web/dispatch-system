@@ -32,10 +32,10 @@ const uploadFields = upload.fields([
     { name: "fumigation_photos" }
 ]);
 
-router.post("/", protect, isAdminOrSuperAdmin, checkCompanyStatus, uploadFields, createDispatch);
-router.get("/:id", protect, isAdminOrSuperAdmin, checkCompanyStatus, getDispatchById);
-router.get("/", protect, isAdminOrSuperAdmin, checkCompanyStatus, getDispatches);
-router.put("/:id", protect, isAdminOrSuperAdmin, checkCompanyStatus, uploadFields, updateDispatch);
-router.delete("/:id", protect, isAdminOrSuperAdmin, checkCompanyStatus, deleteDispatch);
+router.post("/create", protect, isAdminOrSuperAdmin, checkCompanyStatus, uploadFields, createDispatch); // Create a new dispatch
+router.get("/:id", protect, isAdminOrSuperAdmin, checkCompanyStatus, getDispatchById);   // Get dispatch by ID
+router.get("/", protect, isAdminOrSuperAdmin, checkCompanyStatus, getDispatches); // Get all dispatches
+router.put("/:id", protect, isAdminOrSuperAdmin, checkCompanyStatus, uploadFields, updateDispatch); // Update a dispatch
+router.delete("/:id", protect, isAdminOrSuperAdmin, checkCompanyStatus, deleteDispatch); // Delete a dispatch
 
 export default router;
