@@ -120,7 +120,7 @@ export const getDispatches = async (req, res) => {
         const filter = company_id ? { company_id } : {};
         const dispatches = await Dispatch.find(filter)
             .populate("created_by", "name email phone role designation profile_image permission_level")
-            
+
 
         res.status(200).json({
             success: true,
@@ -136,6 +136,10 @@ export const getDispatches = async (req, res) => {
         });
     }
 };
+
+
+
+
 
 export const getDispatchById = async (req, res) => {
     try {
@@ -163,6 +167,8 @@ export const getDispatchById = async (req, res) => {
         });
     }
 };
+
+
 
 
 
@@ -214,6 +220,9 @@ export const deleteDispatch = async (req, res) => {
         });
     }
 };
+
+
+
 
 
 
@@ -382,6 +391,73 @@ export const updateDispatch = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Failed to update dispatch",
+            error: error.message,
+        });
+    }
+};
+
+
+
+
+
+export const getAllDispatches = async (req, res) => {
+    try {
+        const {
+            dispatch_type,
+            vehicle_number,
+            date,
+            page = 1,
+            limit = 10,
+        } = req.query;
+
+        const query = {};
+
+
+        if (dispatch_type) {
+            query.dispatch_type = dispatch_type;
+        }
+
+
+        if (vehicle_number) {
+            query.vehicle_number = { $regex: vehicle_number, $options: "i" };
+        }
+
+
+        if (date) {
+            const startOfDay = new Date(date);
+            startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date(date);
+            endOfDay.setHours(23, 59, 59, 999);
+
+            query.date = { $gte: startOfDay, $lte: endOfDay };
+        }
+
+
+        const skip = (page - 1) * limit;
+
+
+        const dispatches = await Dispatch.find(query)
+            .sort({ date: -1 })
+            .skip(skip)
+            .limit(parseInt(limit));
+
+        const total = await Dispatch.countDocuments(query);
+
+        res.status(200).json({
+            success: true,
+            message: "Dispatch records fetched successfully",
+            total,
+            page: parseInt(page),
+            limit: parseInt(limit),
+            totalPages: Math.ceil(total / limit),
+            filtersUsed: query,
+            data: dispatches,
+        });
+    } catch (error) {
+        console.error("Error fetching dispatch records:", error);
+        res.status(500).json({
+            success: false,
+            message: "Error fetching dispatch records",
             error: error.message,
         });
     }

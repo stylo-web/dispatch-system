@@ -3,6 +3,7 @@ import upload from "../utils/upload.js";
 import {
     createDispatch,
     deleteDispatch,
+    getAllDispatches,
     getDispatchById,
     getDispatches,
     updateDispatch
@@ -34,7 +35,7 @@ const uploadFields = upload.fields([
 
 router.post("/create", protect, isAdminOrSuperAdmin, checkCompanyStatus, uploadFields, createDispatch); // Create a new dispatch
 router.get("/:id", protect, isAdminOrSuperAdmin, checkCompanyStatus, getDispatchById);   // Get dispatch by ID
-router.get("/", protect, isAdminOrSuperAdmin, checkCompanyStatus, getDispatches); // Get all dispatches
+router.get("/", protect, isAdminOrSuperAdmin, checkCompanyStatus, getAllDispatches); // Get all dispatches
 router.put("/:id", protect, isAdminOrSuperAdmin, checkCompanyStatus, uploadFields, updateDispatch); // Update a dispatch
 router.delete("/:id", protect, isAdminOrSuperAdmin, checkCompanyStatus, deleteDispatch); // Delete a dispatch
 
