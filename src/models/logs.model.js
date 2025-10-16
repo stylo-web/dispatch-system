@@ -8,7 +8,7 @@ const logSchema = new mongoose.Schema({
     },
     company_id: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Admin"
+        ref: "Company"
     },
     role: { type: String, enum: ["super_admin", "admin", "user"], required: true },
     action: { type: String, required: true },

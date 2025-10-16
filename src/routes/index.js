@@ -5,6 +5,7 @@ import companyRoutes from "./company.routes.js";
 import adminRoutes from "./admin.routes.js";
 import formRoutes from "./form-requirements.routes.js";
 import dispatchRoutes from "./dispatch.routes.js";
+import dashboardRoutes from "./dashboard.routes.js";
 
 const router = express.Router();
 
@@ -14,5 +15,7 @@ router.use("/company", companyRoutes); // Company routes
 router.use("/admin", adminRoutes); // Admin routes
 router.use("/form-requirements", formRoutes);  // Form Requirement routes
 router.use("/dispatch", dispatchRoutes);    // Dispatch routes
+router.use("/dashboard", dashboardRoutes);    // Dispatch routes
+
 
 export default router;
